@@ -74,6 +74,7 @@ const Post = ({
   postDelete,
   showComments,
   user,
+  style,
 }) => {
   const { postId } = useParams();
   const limit = useRef(5);
@@ -470,25 +471,84 @@ const Post = ({
   );
 
   return (
-    <>
-      {postId && dispatchPostAction ? (
-        //Post in post's page.
-        <>
-          <StyledPostPagePostCard>
+    <div style={style}>
+      <>
+        {postId && dispatchPostAction ? (
+          //Post in post's page.
+          <>
+            <StyledPostPagePostCard>
+              <div className="card-header">
+                {includeProfileLink ? renderHeaderWithLink : renderHeader}
+                <div className="card-submenu">
+                  {isAuthenticated &&
+                    user &&
+                    (isAuthorUser(user, post) ||
+                      (user.organisations &&
+                        isAuthorOrg(user.organisations, post.author))) && (
+                      <SubMenuButton
+                        onSelect={onSelect}
+                        onChange={onChange}
+                        postId={postId}
+                        post={post}
+                        user={user}
+                      />
+                    )}
+                </div>
+              </div>
+              <WhiteSpace size="md" />
+              {renderTags}
+              <WhiteSpace />
+              {renderContent}
+              {fullPostLength > CONTENT_LENGTH ? (
+                <RenderViewMore
+                  postId={postId}
+                  onClick={onClick}
+                  loadMorePost={loadMorePost}
+                />
+              ) : (
+                <Card.Body className="view-more-wrapper">
+                  {renderExternalLinks()}
+                </Card.Body>
+              )}
+              {renderSocialIcons}
+              {renderShareModal}
+              {renderComments}
+              <WebModal
+                title="Confirm"
+                visible={
+                  !!deleteModalVisibility &&
+                  deleteModalVisibility !== DELETE_MODAL_HIDE
+                }
+                onOk={() => handleDeleteOk()}
+                onCancel={handleCancelPostDelete}
+                okText="Delete"
+                cancelText="Cancel"
+              >
+                {(deleteModalVisibility === DELETE_MODAL_POST && (
+                  <p>Are you sure you want to delete the post?</p>
+                )) || <p>Are you sure you want to delete the comment?</p>}
+              </WebModal>
+            </StyledPostPagePostCard>
+            <StyledButtonWizard
+              nav={<WizardFormNav gtmPrefix={GTM.post.prefix} />}
+            />
+          </>
+        ) : (
+          //Post in feed.
+          <PostCard>
             <div className="card-header">
               {includeProfileLink ? renderHeaderWithLink : renderHeader}
               <div className="card-submenu">
                 {isAuthenticated &&
                   user &&
                   (isAuthorUser(user, post) ||
-                    (user.organisations &&
-                      isAuthorOrg(user.organisations, post.author))) && (
+                    isAuthorOrg(user.organisations, post.author)) && (
                     <SubMenuButton
+                      onChange={handleDelete}
                       onSelect={onSelect}
-                      onChange={onChange}
-                      postId={postId}
                       post={post}
                       user={user}
+                      postId={postId}
                     />
                   )}
               </div>
@@ -496,114 +556,57 @@ const Post = ({
             <WhiteSpace size="md" />
             {renderTags}
             <WhiteSpace />
-            {renderContent}
-            {fullPostLength > CONTENT_LENGTH ? (
-              <RenderViewMore
-                postId={postId}
-                onClick={onClick}
-                loadMorePost={loadMorePost}
-              />
+            {isAuthenticated && post ? (
+              <Link
+                to={{
+                  pathname: `/post/${_id}`,
+                  state: {
+                    post: post,
+                    postId: _id,
+                    from: window.location.href,
+                    user,
+                  },
+                }}
+              >
+                {renderContent}
+              </Link>
             ) : (
-              <Card.Body className="view-more-wrapper">
-                {renderExternalLinks()}
-              </Card.Body>
+              <>{renderContent}</>
             )}
+            {fullPostLength > CONTENT_LENGTH ||
+              (post?.content?.length > CONTENT_LENGTH ? (
+                <RenderViewMore
+                  postId={postId}
+                  onClick={onClick}
+                  loadMorePost={loadMorePost}
+                />
+              ) : (
+                <Card.Body className="view-more-wrapper" />
+              ))}
             {renderSocialIcons}
             {renderShareModal}
-            {renderComments}
             <WebModal
               title="Confirm"
               visible={
                 !!deleteModalVisibility &&
-                deleteModalVisibility !== DELETE_MODAL_HIDE
+                deleteModalVisibility !== DELETE_MODAL_HIDE &&
+                toDelete === post._id
               }
               onOk={() => handleDeleteOk()}
               onCancel={handleCancelPostDelete}
               okText="Delete"
               cancelText="Cancel"
             >
-              {(deleteModalVisibility === DELETE_MODAL_POST && (
+              {deleteModalVisibility === DELETE_MODAL_POST ? (
                 <p>Are you sure you want to delete the post?</p>
-              )) || <p>Are you sure you want to delete the comment?</p>}
+              ) : (
+                <p>Are you sure you want to delete the comment?</p>
+              )}
             </WebModal>
-          </StyledPostPagePostCard>
-          <StyledButtonWizard
-            nav={<WizardFormNav gtmPrefix={GTM.post.prefix} />}
-          />
-        </>
-      ) : (
-        //Post in feed.
-        <PostCard>
-          <div className="card-header">
-            {includeProfileLink ? renderHeaderWithLink : renderHeader}
-            <div className="card-submenu">
-              {isAuthenticated &&
-                user &&
-                (isAuthorUser(user, post) ||
-                  isAuthorOrg(user.organisations, post.author)) && (
-                  <SubMenuButton
-                    onChange={handleDelete}
-                    onSelect={onSelect}
-                    post={post}
-                    user={user}
-                    postId={postId}
-                  />
-                )}
-            </div>
-          </div>
-          <WhiteSpace size="md" />
-          {renderTags}
-          <WhiteSpace />
-          {isAuthenticated && post ? (
-            <Link
-              to={{
-                pathname: `/post/${_id}`,
-                state: {
-                  post: post,
-                  postId: _id,
-                  from: window.location.href,
-                  user,
-                },
-              }}
-            >
-              {renderContent}
-            </Link>
-          ) : (
-            <>{renderContent}</>
-          )}
-          {fullPostLength > CONTENT_LENGTH ||
-            (post?.content?.length > CONTENT_LENGTH ? (
-              <RenderViewMore
-                postId={postId}
-                onClick={onClick}
-                loadMorePost={loadMorePost}
-              />
-            ) : (
-              <Card.Body className="view-more-wrapper" />
-            ))}
-          {renderSocialIcons}
-          {renderShareModal}
-          <WebModal
-            title="Confirm"
-            visible={
-              !!deleteModalVisibility &&
-              deleteModalVisibility !== DELETE_MODAL_HIDE &&
-              toDelete === post._id
-            }
-            onOk={() => handleDeleteOk()}
-            onCancel={handleCancelPostDelete}
-            okText="Delete"
-            cancelText="Cancel"
-          >
-            {deleteModalVisibility === DELETE_MODAL_POST ? (
-              <p>Are you sure you want to delete the post?</p>
-            ) : (
-              <p>Are you sure you want to delete the comment?</p>
-            )}
-          </WebModal>
-        </PostCard>
-      )}
-    </>
+          </PostCard>
+        )}
+      </>
+    </div>
   );
 };
 
@@ -614,4 +617,3 @@ const mapStateToProps = ({ session: { isAuthenticated } }) => {
 };
 
 export default connect(mapStateToProps)(Post);
-
